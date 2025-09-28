@@ -35,7 +35,7 @@ func webhook(res http.ResponseWriter, req *http.Request) {
 		fmt.Println("Request path:")
 		fmt.Println(req.URL.Path)
 
-		res.Header().Set("Location", "http://localhost:8080/EwHXdJfB")
+		res.Header().Set("Location", "https://practicum.yandex.ru/")
 		res.WriteHeader(http.StatusTemporaryRedirect)
 	default:
 		res.WriteHeader(http.StatusBadRequest)
