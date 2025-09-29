@@ -27,24 +27,24 @@ func randomString(length int) string {
 }
 
 var urlToShort map[string]string = make(map[string]string)
-var shortToUrl map[string]string = make(map[string]string)
+var shortToURL map[string]string = make(map[string]string)
 
-const shortUrlLength = 8
+const shortURLLength = 8
 
-func createShortUrl(url string) string {
-	shortUrl, ok := urlToShort[url]
+func createShortURL(url string) string {
+	shortURL, ok := urlToShort[url]
 	if ok {
-		return shortUrl
+		return shortURL
 	} else {
-		shortUrl = "/" + randomString(shortUrlLength)
-		urlToShort[url] = shortUrl
-		shortToUrl[shortUrl] = url
-		return shortUrl
+		shortURL = "/" + randomString(shortURLLength)
+		urlToShort[url] = shortURL
+		shortToURL[shortURL] = url
+		return shortURL
 	}
 }
 
-func getUrlByShort(short string) string {
-	url, ok := shortToUrl[short]
+func getURLByShort(short string) string {
+	url, ok := shortToURL[short]
 	if ok {
 		return url
 	} else {
@@ -65,18 +65,18 @@ func webhook(res http.ResponseWriter, req *http.Request) {
 		fmt.Println("URL requested to short:")
 		fmt.Println(url)
 
-		shortUrl := createShortUrl(url)
+		shortURL := createShortURL(url)
 
 		res.Header().Set("Content-Type", "text/plain")
 		res.WriteHeader(http.StatusCreated)
-		res.Write([]byte("http://localhost:8080" + shortUrl))
+		res.Write([]byte("http://localhost:8080" + shortURL))
 	case http.MethodGet:
-		shortUrl := req.URL.Path
+		shortURL := req.URL.Path
 
 		fmt.Println("Short URL requested:")
-		fmt.Println(shortUrl)
+		fmt.Println(shortURL)
 
-		url := getUrlByShort(shortUrl)
+		url := getURLByShort(shortURL)
 
 		fmt.Println("URL found:")
 		fmt.Println(url)
