@@ -4,6 +4,11 @@ import (
 	"math/rand"
 )
 
+var (
+	CreateShortURL = createShortURL
+	GetURLByShort  = getURLByShort
+)
+
 func randomString(length int) string {
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, length)
@@ -18,7 +23,7 @@ var shortToURL map[string]string = make(map[string]string)
 
 const shortURLLength = 8
 
-func CreateShortURL(url string) string {
+func createShortURL(url string) string {
 	shortURL, ok := urlToShort[url]
 	if ok {
 		return shortURL
@@ -30,7 +35,7 @@ func CreateShortURL(url string) string {
 	}
 }
 
-func GetURLByShort(short string) string {
+func getURLByShort(short string) string {
 	url, ok := shortToURL[short]
 	if ok {
 		return url
