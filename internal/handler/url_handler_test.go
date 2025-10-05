@@ -100,7 +100,7 @@ func TestWebhookPOST(t *testing.T) {
 				return tt.mockShortURL
 			}
 
-			resp, responseBody := testRequest(t, server, http.MethodPost, "/", tt.body, tt.contentType)
+			resp, rbd := testRequest(t, server, http.MethodPost, "/", tt.body, tt.contentType)
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
 			if status := resp.StatusCode; status != tt.expectedStatus {
@@ -109,9 +109,9 @@ func TestWebhookPOST(t *testing.T) {
 			}
 
 			if tt.expectedBody != "" {
-				if responseBody != tt.expectedBody {
+				if rbd != tt.expectedBody {
 					t.Errorf("handler returned unexpected body: got %v want %v",
-						responseBody, tt.expectedBody)
+						rbd, tt.expectedBody)
 				}
 			}
 
