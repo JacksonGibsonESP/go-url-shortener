@@ -101,6 +101,7 @@ func TestWebhookPOST(t *testing.T) {
 			}
 
 			resp, rbd := testRequest(t, server, http.MethodPost, "/", tt.body, tt.contentType)
+			resp.Body.Close() // are you satisfied?
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
 			if status := resp.StatusCode; status != tt.expectedStatus {
@@ -178,6 +179,7 @@ func TestWebhookGET(t *testing.T) {
 			}
 
 			resp, _ := testRequest(t, server, http.MethodGet, tt.shortURL, "", "")
+			resp.Body.Close() // are you satisfied?
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
 			if status := resp.StatusCode; status != tt.expectedStatus {
