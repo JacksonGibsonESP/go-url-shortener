@@ -7,11 +7,6 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
-		panic(err)
-	}
-}
-
-func run() error {
-	return http.ListenAndServe(`:8080`, http.HandlerFunc(handler.Webhook))
+	router := handler.URLRouter()
+	http.ListenAndServe(":8080", router)
 }

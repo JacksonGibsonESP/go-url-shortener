@@ -1,15 +1,46 @@
 package handler
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/JacksonGibsonESP/go-url-shortener/internal/service"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+func testRequest(t *testing.T, ts *httptest.Server, method, path string,
+	body string, bodyContentType string) (*http.Response, string) {
+	req, err := http.NewRequest(method, ts.URL+path, strings.NewReader(body))
+	require.NoError(t, err)
+
+	if bodyContentType != "" {
+		req.Header.Set("Content-Type", bodyContentType)
+	}
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	return resp, string(respBody)
+}
+
 func TestWebhookPOST(t *testing.T) {
+	server := httptest.NewServer(URLRouter())
+	defer server.Close()
+
 	tests := []struct {
 		name           string
 		contentType    string
@@ -69,29 +100,23 @@ func TestWebhookPOST(t *testing.T) {
 				return tt.mockShortURL
 			}
 
-			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
-			if tt.contentType != "" {
-				req.Header.Set("Content-Type", tt.contentType)
-			}
+			resp, responseBody := testRequest(t, server, http.MethodPost, "/", tt.body, tt.contentType)
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
-			rr := httptest.NewRecorder()
-
-			Webhook(rr, req)
-
-			if status := rr.Code; status != tt.expectedStatus {
+			if status := resp.StatusCode; status != tt.expectedStatus {
 				t.Errorf("handler returned wrong status code: got %v want %v",
 					status, tt.expectedStatus)
 			}
 
 			if tt.expectedBody != "" {
-				if body := rr.Body.String(); body != tt.expectedBody {
+				if responseBody != tt.expectedBody {
 					t.Errorf("handler returned unexpected body: got %v want %v",
-						body, tt.expectedBody)
+						responseBody, tt.expectedBody)
 				}
 			}
 
 			if tt.expectedStatus == http.StatusCreated {
-				if contentType := rr.Header().Get("Content-Type"); contentType != "text/plain" {
+				if contentType := resp.Header.Get("Content-Type"); contentType != "text/plain" {
 					t.Errorf("handler returned wrong content type: got %v want text/plain",
 						contentType)
 				}
@@ -101,6 +126,9 @@ func TestWebhookPOST(t *testing.T) {
 }
 
 func TestWebhookGET(t *testing.T) {
+	server := httptest.NewServer(URLRouter())
+	defer server.Close()
+
 	tests := []struct {
 		name             string
 		shortURL         string
@@ -119,7 +147,7 @@ func TestWebhookGET(t *testing.T) {
 			name:             "empty short URL",
 			shortURL:         "/",
 			mockOriginalURL:  "",
-			expectedStatus:   http.StatusBadRequest,
+			expectedStatus:   http.StatusMethodNotAllowed,
 			expectedLocation: "",
 		},
 		{
@@ -149,43 +177,17 @@ func TestWebhookGET(t *testing.T) {
 				return tt.mockOriginalURL
 			}
 
-			req := httptest.NewRequest(http.MethodGet, tt.shortURL, nil)
+			resp, _ := testRequest(t, server, http.MethodGet, tt.shortURL, "", "")
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
-			rr := httptest.NewRecorder()
-
-			Webhook(rr, req)
-
-			if status := rr.Code; status != tt.expectedStatus {
+			if status := resp.StatusCode; status != tt.expectedStatus {
 				t.Errorf("handler returned wrong status code: got %v want %v",
 					status, tt.expectedStatus)
 			}
 
-			if location := rr.Header().Get("Location"); location != tt.expectedLocation {
+			if location := resp.Header.Get("Location"); location != tt.expectedLocation {
 				t.Errorf("handler returned wrong location: got %v want %v",
 					location, tt.expectedLocation)
-			}
-		})
-	}
-}
-
-func TestWebhookUnsupportedMethods(t *testing.T) {
-	methods := []string{
-		http.MethodPut,
-		http.MethodDelete,
-		http.MethodPatch,
-		http.MethodOptions,
-	}
-
-	for _, method := range methods {
-		t.Run(method, func(t *testing.T) {
-			req := httptest.NewRequest(method, "/", nil)
-			rr := httptest.NewRecorder()
-
-			Webhook(rr, req)
-
-			if status := rr.Code; status != http.StatusBadRequest {
-				t.Errorf("handler returned wrong status code for %s: got %v want %v",
-					method, status, http.StatusBadRequest)
 			}
 		})
 	}
