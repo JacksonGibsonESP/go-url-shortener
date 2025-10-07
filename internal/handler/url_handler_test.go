@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JacksonGibsonESP/go-url-shortener/internal/config"
 	"github.com/JacksonGibsonESP/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -82,6 +83,8 @@ func TestWebhookPOST(t *testing.T) {
 			expectedBody:   "",
 		},
 	}
+
+	config.Config = config.Params{CurrentAdress: "localhost:8080", TargetAdress: "http://localhost:8080"}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/JacksonGibsonESP/go-url-shortener/internal/config"
 	"github.com/JacksonGibsonESP/go-url-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
 )
@@ -37,7 +38,7 @@ func ShortCreationHandler(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte("http://localhost:8080" + shortURL))
+	res.Write([]byte(config.Config.TargetAdress + shortURL))
 }
 
 func URLHandler(res http.ResponseWriter, req *http.Request) {
