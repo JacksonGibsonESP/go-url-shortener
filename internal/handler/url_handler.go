@@ -1,14 +1,15 @@
 package handler
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/JacksonGibsonESP/go-url-shortener/internal/config"
+	"github.com/JacksonGibsonESP/go-url-shortener/internal/logging"
 	"github.com/JacksonGibsonESP/go-url-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 func URLRouter() chi.Router {
@@ -26,7 +27,7 @@ func ShortCreationHandler(res http.ResponseWriter, req *http.Request) {
 
 	body, _ := io.ReadAll(req.Body)
 	url := string(body)
-	fmt.Printf("URL requested to short: %s\n", url)
+	logging.Log.Info("Requested to short", zap.String("url", url))
 
 	if strings.TrimSpace(url) == "" {
 		res.WriteHeader(http.StatusBadRequest)
@@ -34,7 +35,7 @@ func ShortCreationHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	shortURL := service.CreateShortURL(url)
-	fmt.Printf("URL shortened: %s\n", shortURL)
+	logging.Log.Info("Shortened", zap.String("shortUrl", shortURL))
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
@@ -43,10 +44,10 @@ func ShortCreationHandler(res http.ResponseWriter, req *http.Request) {
 
 func URLHandler(res http.ResponseWriter, req *http.Request) {
 	short := "/" + chi.URLParam(req, "short")
-	fmt.Printf("Short URL requested: %s\n", short)
+	logging.Log.Info("Full URL requested by short", zap.String("shortUrl", short))
 
 	url := service.GetURLByShort(short)
-	fmt.Printf("URL found: %s\n", url)
+	logging.Log.Info("URL found", zap.String("url", url))
 
 	if strings.TrimSpace(url) == "" {
 		res.WriteHeader(http.StatusBadRequest)
