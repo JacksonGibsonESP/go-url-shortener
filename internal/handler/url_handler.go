@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -16,6 +17,8 @@ func URLRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/", ShortCreationHandler)
 	r.Get("/{short}", URLHandler)
+	//RESTfull
+	r.Post("/api/shorten", RESTShortCreationHandler)
 	return r
 }
 
@@ -56,4 +59,50 @@ func URLHandler(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+type RequestBody struct {
+	Url string `json:"url"`
+}
+
+type ResponseBody struct {
+	Result string `json:"result"`
+}
+
+func RESTShortCreationHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Header.Get("Content-Type") != "application/json" {
+		res.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var request RequestBody
+	dec := json.NewDecoder(req.Body)
+	if err := dec.Decode(&request); err != nil {
+		logging.Log.Error("Error encoding request", zap.Error(err))
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	logging.Log.Info("Requested to short", zap.String("url", request.Url))
+
+	if strings.TrimSpace(request.Url) == "" {
+		res.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	shortURL := service.CreateShortURL(request.Url)
+	logging.Log.Info("Shortened", zap.String("shortUrl", shortURL))
+
+	response := ResponseBody{
+		Result: config.Config.TargetAdress + shortURL,
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+
+	enc := json.NewEncoder(res)
+	if err := enc.Encode(response); err != nil {
+		logging.Log.Error("Error encoding response", zap.Error(err))
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
