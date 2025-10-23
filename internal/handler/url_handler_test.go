@@ -197,3 +197,108 @@ func TestWebhookGET(t *testing.T) {
 		})
 	}
 }
+
+func TestShortenREST(t *testing.T) {
+	server := httptest.NewServer(URLRouter())
+	defer server.Close()
+
+	tests := []struct {
+		name           string
+		contentType    string
+		requestBody    string
+		urlToShort     string
+		mockShortURL   string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "successful URL shortening",
+			contentType:    "application/json",
+			requestBody:    "{\"url\":\"https://example.com\"}",
+			urlToShort:     "https://example.com",
+			mockShortURL:   "/abc123",
+			expectedStatus: http.StatusCreated,
+			expectedBody:   "{\"result\":\"http://localhost:8080/abc123\"}\n",
+		},
+		{
+			name:           "wrong request",
+			contentType:    "application/json",
+			requestBody:    "{\"to_short\":\"https://example.com\"}",
+			urlToShort:     "https://example.com",
+			mockShortURL:   "",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "",
+		},
+		{
+			name:           "wrong content type",
+			contentType:    "text/plain",
+			requestBody:    `{"url": "https://example.com"}`,
+			urlToShort:     "https://example.com",
+			mockShortURL:   "",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "",
+		},
+		{
+			name:           "missing content type",
+			contentType:    "",
+			requestBody:    "{\"url\":\"https://example.com\"}",
+			urlToShort:     "https://example.com",
+			mockShortURL:   "",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "",
+		},
+		{
+			name:           "wrong body",
+			contentType:    "application/json",
+			requestBody:    "{url:\"https://example.com\"}",
+			urlToShort:     "",
+			mockShortURL:   "",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   "",
+		},
+	}
+
+	config.Config = config.Params{CurrentAdress: "localhost:8080", TargetAdress: "http://localhost:8080"}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			originalCreateShortURLFunction := service.CreateShortURL
+			originalGetURLByShort := service.GetURLByShort
+
+			defer func() {
+				service.CreateShortURL = originalCreateShortURLFunction
+				service.GetURLByShort = originalGetURLByShort
+			}()
+
+			service.CreateShortURL = func(url string) string {
+				if url != tt.urlToShort {
+					t.Errorf("Expected URL %s, got %s", tt.urlToShort, url)
+				}
+				return tt.mockShortURL
+			}
+
+			resp, rbd := testRequest(t, server, http.MethodPost, "/api/shorten", tt.requestBody, tt.contentType)
+			resp.Body.Close() // are you satisfied?
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+
+			if status := resp.StatusCode; status != tt.expectedStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v",
+					status, tt.expectedStatus)
+			}
+
+			if tt.expectedBody != "" {
+				if rbd != tt.expectedBody {
+					t.Errorf("handler returned unexpected body: got %v want %v",
+						rbd, tt.expectedBody)
+				}
+			}
+
+			if tt.expectedStatus == http.StatusCreated {
+				if contentType := resp.Header.Get("Content-Type"); contentType != "application/json" {
+					t.Errorf("handler returned wrong content type: got %v want application/json",
+						contentType)
+				}
+			}
+		})
+	}
+}
