@@ -62,7 +62,7 @@ func URLHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 type RequestBody struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 type ResponseBody struct {
@@ -82,14 +82,14 @@ func RESTShortCreationHandler(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	logging.Log.Info("Requested to short", zap.String("url", request.Url))
+	logging.Log.Info("Requested to short", zap.String("url", request.URL))
 
-	if strings.TrimSpace(request.Url) == "" {
+	if strings.TrimSpace(request.URL) == "" {
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	shortURL := service.CreateShortURL(request.Url)
+	shortURL := service.CreateShortURL(request.URL)
 	logging.Log.Info("Shortened", zap.String("shortUrl", shortURL))
 
 	response := ResponseBody{

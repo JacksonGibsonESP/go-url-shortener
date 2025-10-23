@@ -221,7 +221,7 @@ func TestShortenREST(t *testing.T) {
 			expectedBody:   "{\"result\":\"http://localhost:8080/abc123\"}\n",
 		},
 		{
-			name:           "wrong body",
+			name:           "wrong request",
 			contentType:    "application/json",
 			requestBody:    "{\"to_short\":\"https://example.com\"}",
 			urlToShort:     "https://example.com",
@@ -245,6 +245,15 @@ func TestShortenREST(t *testing.T) {
 			urlToShort:     "https://example.com",
 			mockShortURL:   "",
 			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "",
+		},
+		{
+			name:           "wrong body",
+			contentType:    "application/json",
+			requestBody:    "{url:\"https://example.com\"}",
+			urlToShort:     "",
+			mockShortURL:   "",
+			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   "",
 		},
 	}
